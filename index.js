@@ -20,8 +20,9 @@ app.post('/fabric-query', async (req, res) => {
         },
         options: {
             encrypt: true,
-            trustServerCertificate: false,
-            port: 1433
+            trustServerCertificate: true,
+            port: 1433,
+            connectTimeout: 60000
         }
     };
 
