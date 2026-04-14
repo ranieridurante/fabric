@@ -19,8 +19,8 @@ app.post('/fabric-query', async (req, res) => {
     const uid = `${body.clientId}@${body.tenantId}`;
     const pwd = body.clientSecret;
 
-    // Cadena de conexión oficial de Microsoft ODBC
-    const connectionString = `DRIVER={ODBC Driver 18 for SQL Server};SERVER=${body.server};DATABASE=${body.database};UID=${uid};PWD=${pwd};Authentication=ActiveDirectoryServicePrincipal;Encrypt=yes;TrustServerCertificate=yes;`;
+    // Cadena de conexión oficial de Microsoft ODBC (Forzando TCP y el puerto 1433)
+    const connectionString = `DRIVER={ODBC Driver 18 for SQL Server};SERVER=tcp:${body.server},1433;DATABASE=${body.database};UID=${uid};PWD=${pwd};Authentication=ActiveDirectoryServicePrincipal;Encrypt=yes;TrustServerCertificate=yes;`;
 
     try {
         const connection = await odbc.connect(connectionString);
@@ -36,3 +36,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Puente de Fabric escuchando en el puerto ${PORT}`);
 });
+
+// Evitar que el contenedor crashee si ODBC lanza un error fatal a nivel C++
+process.on('uncaughtException', (err) => console.error('Error crítico no capturado:', err));
+process.on('unhandledRejection', (err) => console.error('Promesa rechazada no capturada:', err));
