@@ -1,6 +1,8 @@
 const express = require('express');
 const odbc = require('odbc');
 
+BigInt.prototype.toJSON = function() { return this.toString(); };
+
 const app = express();
 app.use(express.json());
 
