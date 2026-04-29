@@ -1,15 +1,8 @@
 const express = require('express');
 const sql = require('mssql');
 
-BigInt.prototype.toJSON = function() { return this.toString(); };
-
 const app = express();
 app.use(express.json());
-
-// Ruta de comprobación de salud para que Easypanel sepa que la app está viva
-app.get('/', (req, res) => {
-    res.send('Puente de Fabric Activo y funcionando.');
-});
 
 app.post('/fabric-query', async (req, res) => {
     const body = req.body;
@@ -27,9 +20,8 @@ app.post('/fabric-query', async (req, res) => {
         },
         options: {
             encrypt: true,
-            trustServerCertificate: true, // Ignora errores de certificado SSL de Microsoft
-            port: 1433,
-            connectTimeout: 60000 // Da más tiempo para la primera conexión a Fabric
+            trustServerCertificate: false,
+            port: 1433
         }
     };
 
@@ -43,8 +35,8 @@ app.post('/fabric-query', async (req, res) => {
     }
 });
 
-// Forzamos a escuchar en 0.0.0.0 para compatibilidad total con el Docker de Easypanel
+// Easypanel expone automáticamente el puerto 3000 por defecto en sus apps de Node
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
     console.log(`Puente de Fabric escuchando en el puerto ${PORT}`);
 });
