@@ -1,7 +1,6 @@
 const express = require('express');
 const sql = require('mssql');
 
-// Solución para que Node.js sepa cómo serializar datos BigInt a JSON
 BigInt.prototype.toJSON = function() { return this.toString(); };
 
 const app = express();
