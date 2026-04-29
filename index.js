@@ -1,8 +1,6 @@
 const express = require('express');
 const sql = require('mssql');
 
-BigInt.prototype.toJSON = function() { return this.toString(); };
-
 const app = express();
 app.use(express.json());
 
