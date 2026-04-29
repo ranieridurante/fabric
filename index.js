@@ -1,48 +1,42 @@
 const express = require('express');
-const sql = require('mssql');
+const odbc = require('odbc');
 
 const app = express();
 app.use(express.json());
 
-// Ruta de comprobación de salud para que Easypanel sepa que la app está viva
 app.get('/', (req, res) => {
-    res.send('Puente de Fabric Activo y funcionando.');
+    res.send('Puente de Fabric Activo y funcionando con ODBC.');
 });
 
 app.post('/fabric-query', async (req, res) => {
     const body = req.body;
 
-    if (!body || !body.access_token) {
-        return res.status(400).json({ success: false, error: "Faltan datos en la petición." });
+    if (!body || !body.server || !body.database || !body.clientId || !body.tenantId || !body.clientSecret) {
+        return res.status(400).json({ success: false, error: "Faltan credenciales en la petición." });
     }
 
-    const config = {
-        server: body.server,
-        database: body.database,
-        authentication: {
-            type: 'azure-active-directory-access-token',
-            options: { token: body.access_token }
-        },
-        options: {
-            encrypt: true,
-            trustServerCertificate: true, // Ignora errores de certificado SSL de Microsoft
-            port: 1433,
-            connectTimeout: 60000 // Da más tiempo para la primera conexión a Fabric
-        }
-    };
+    // Fabric usa el formato ClientID@TenantID para el usuario
+    const uid = `${body.clientId}@${body.tenantId}`;
+    const pwd = body.clientSecret;
+
+    // Cadena de conexión oficial de Microsoft ODBC (Forzando TCP y el puerto 1433)
+    const connectionString = `DRIVER={ODBC Driver 18 for SQL Server};SERVER=tcp:${body.server},1433;DATABASE=${body.database};UID=${uid};PWD=${pwd};Authentication=ActiveDirectoryServicePrincipal;Encrypt=yes;TrustServerCertificate=yes;`;
 
     try {
-        const pool = await sql.connect(config);
-        const result = await pool.request().query(body.query);
-        pool.close();
-        res.json({ success: true, data: result.recordset });
+        const connection = await odbc.connect(connectionString);
+        const result = await connection.query(body.query);
+        await connection.close();
+        res.json({ success: true, data: result });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// Forzamos a escuchar en 0.0.0.0 para compatibilidad total con el Docker de Easypanel
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Puente de Fabric escuchando en el puerto ${PORT}`);
 });
+
+// Evitar que el contenedor crashee si ODBC lanza un error fatal a nivel C++
+process.on('uncaughtException', (err) => console.error('Error crítico no capturado:', err));
+process.on('unhandledRejection', (err) => console.error('Promesa rechazada no capturada:', err));
